@@ -1,20 +1,32 @@
-import type { Metadata } from "next"
+"use client"
+
 import { Inter } from "next/font/google"
 import "./globals.css"
 import type React from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "FinWise",
-  description: "Your Financial Wisdom Partner",
-}
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    setIsLoggedIn(!!token)
+  }, [])
+
+  const handleSignOut = () => {
+    localStorage.removeItem("token")
+    setIsLoggedIn(false)
+    router.push("/login")
+  }
+
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -35,6 +47,21 @@ export default function RootLayout({
                 <a href="/contact" className="hover:text-lime-500">
                   Contact
                 </a>
+                {isLoggedIn ? (
+                  <button
+                    onClick={handleSignOut}
+                    className="hover:text-lime-500 hover:underline"
+                  >
+                    Sign Out
+                  </button>
+                ) : (
+                  <a
+                    href="/login"
+                    className="bg-lime-500 text-white px-4 py-2 rounded-md hover:bg-lime-600 transition-colors"
+                  >
+                    Sign In
+                  </a>
+                )}
               </nav>
             </div>
           </header>
@@ -70,4 +97,3 @@ export default function RootLayout({
     </html>
   )
 }
-
