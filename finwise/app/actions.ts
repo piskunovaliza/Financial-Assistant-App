@@ -3,38 +3,79 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-type User = {
-  username: string
-  password: string
+interface ActionState {
+  error?: string;
+  success?: boolean;
 }
-
-// In a real app, you would store users in a database
-const users: User[] = []
-
-export async function login(prevState: any, formData: FormData) {
+export async function register(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
 
-  const user = users.find((u) => u.username === username && u.password === password)
+  try {
+    const response = await fetch('http://localhost:5000/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
 
-  if (user) {
-    (await cookies()).set("auth", username)
-    redirect("/dashboard")
+    const data = await response.json();
+    if (!response.ok) {
+    return { error: data.error || "Registration failed" };
   }
 
-  return { error: "Invalid credentials" }
+    const loginResponse = await fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const loginData = await loginResponse.json();
+    if (!loginResponse.ok) {
+      return { error: loginData.error || "Login after registration failed" };
+    }
+
+    (await cookies()).set("auth", loginData.token);
+    redirect("/");
+  } catch (error) {
+    if (error instanceof Error && !error.message.includes('NEXT_REDIRECT')) {
+      console.error('Registration error:', error);
+      return { error: "An error occurred during registration" };
+  }
+    throw error;
+}
 }
 
-export async function register(prevState: any, formData: FormData) {
+export async function login(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
 
-  if (users.find((u) => u.username === username)) {
-    return { error: "Username already exists" }
+  try {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { error: data.error || "Login failed" };
+    }
+
+    (await cookies()).set("auth", data.token);
+
+    return { success: true };
+
+  } catch (error) {
+    if (error instanceof Error && !error.message.includes('NEXT_REDIRECT')) {
+      console.error('Login error:', error);
+      return { error: "An error occurred during login" };
+    }
+    throw error;
   }
-
-  users.push({ username, password })
-  ;(await cookies()).set("auth", username)
-  redirect("/dashboard")
 }
-

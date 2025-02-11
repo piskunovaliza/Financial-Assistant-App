@@ -1,14 +1,34 @@
 "use client"
 
 import { useActionState } from "react"
+import { useEffect } from "react"
 import { login } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { useAuth } from "./providers/AuthProvider"
+import { useRouter } from "next/navigation"
+
+interface ActionState {
+  error?: string;
+  success?: boolean;
+}
 
 export default function LoginPage() {
-  const [state, formAction, isPending] = useActionState(login, null)
+  const { setIsAuthenticated } = useAuth()
+  const router = useRouter()
+  const [state, formAction, isPending] = useActionState(
+    login,
+    { success: false }
+  )
+
+  useEffect(() => {
+    if (state?.success) {
+      setIsAuthenticated(true)
+      router.push('/dashboard')
+    }
+  }, [state?.success, setIsAuthenticated, router])
 
   return (
     <div className="max-w-md mx-auto mt-20">
@@ -42,4 +62,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
